@@ -1,0 +1,9 @@
+<resources>
+    <style name="Theme.CyberNode" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:colorAccent">#38D39F</item>
+        <item name="android:navigationBarColor">#09131B</item>
+        <item name="android:statusBarColor">#09131B</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+</resources>

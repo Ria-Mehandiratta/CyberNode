@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#09131B">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="CYBERNODE"
+            android:textColor="#38D39F"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.18" />
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="Wireless safety, made visible."
+            android:textColor="#F2F7F5"
+            android:textSize="26sp"
+            android:textStyle="bold" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:background="#11232C"
+            android:orientation="vertical"
+            android:padding="18dp">
+            <TextView android:id="@+id/statusLabel" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="SYSTEM STATUS" android:textColor="#91A9A9" android:textSize="12sp" />
+            <TextView android:id="@+id/statusValue" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="5dp" android:text="SAFE" android:textColor="#38D39F" android:textSize="32sp" android:textStyle="bold" />
+            <TextView android:id="@+id/statusDetail" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="3dp" android:text="ESP32 connected  •  Firewall active" android:textColor="#B6C8C5" android:textSize="14sp" />
+        </LinearLayout>
+
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="14dp" android:orientation="horizontal">
+            <TextView android:id="@+id/riskValue" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="RISK  0 / 100" android:textColor="#F2F7F5" android:textSize="16sp" android:textStyle="bold" />
+            <TextView android:id="@+id/networkCount" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0 networks" android:textColor="#91A9A9" android:textSize="14sp" />
+        </LinearLayout>
+        <ProgressBar android:id="@+id/riskMeter" style="?android:attr/progressBarStyleHorizontal" android:layout_width="match_parent" android:layout_height="8dp" android:layout_marginTop="8dp" android:max="100" android:progressTint="#38D39F" />
+
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="22dp" android:gravity="center_vertical">
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="LIVE SCANNER" android:textColor="#F2F7F5" android:textSize="15sp" android:textStyle="bold" />
+            <TextView android:id="@+id/firewallToggle" android:layout_width="wrap_content" android:layout_height="wrap_content" android:background="#173F38" android:padding="10dp" android:text="FIREWALL ON" android:textColor="#38D39F" android:textSize="12sp" android:textStyle="bold" />
+        </LinearLayout>
+        <LinearLayout android:id="@+id/networkList" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:orientation="vertical" />
+
+        <LinearLayout android:id="@+id/detailPanel" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:background="#17313A" android:orientation="vertical" android:padding="16dp" android:visibility="gone">
+            <TextView android:id="@+id/detailTitle" android:layout_width="match_parent" android:layout_height="wrap_content" android:textColor="#F2F7F5" android:textSize="17sp" android:textStyle="bold" />
+            <TextView android:id="@+id/detailBody" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="7dp" android:textColor="#B6C8C5" android:textSize="13sp" />
+        </LinearLayout>
+
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="24dp" android:text="CYBERSHIELD ACTIONS" android:textColor="#F2F7F5" android:textSize="15sp" android:textStyle="bold" />
+        <Switch android:id="@+id/autoDisconnect" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:checked="true" android:text="Auto-disconnect danger networks" android:textColor="#B6C8C5" />
+        <Switch android:id="@+id/blockReconnect" android:layout_width="match_parent" android:layout_height="wrap_content" android:checked="true" android:text="Block automatic reconnect" android:textColor="#B6C8C5" />
+        <TextView android:id="@+id/historyLabel" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="14dp" android:text="THREAT HISTORY  •  No incidents in this session" android:textColor="#91A9A9" android:textSize="12sp" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="18dp" android:text="TRUSTED NETWORKS  •  CyberNode Lab" android:textColor="#91A9A9" android:textSize="12sp" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="14dp" android:text="SECURITY TIPS\nAvoid entering passwords or using banking apps on open Wi-Fi. Prefer mobile data when the risk score is high." android:textColor="#B6C8C5" android:textSize="13sp" />
+    </LinearLayout>
+</ScrollView>
