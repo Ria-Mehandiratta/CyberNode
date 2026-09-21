@@ -313,6 +313,10 @@ class CyberNodeHandler(http.server.SimpleHTTPRequestHandler):
 
 def run():
     print(f"CyberNode live server starting on http://localhost:{PORT}")
+    try:
+        webbrowser.open(f"http://localhost:{PORT}")
+    except Exception:
+        pass
     socketserver.TCPServer.allow_reuse_address = True
     server = socketserver.TCPServer(("", PORT), CyberNodeHandler)
     try:
