@@ -935,6 +935,23 @@
         }
       });
 
+      if (window.AndroidFirewall && window.AndroidFirewall.enforce) {
+        const topThreat = state.assessments[0];
+        if (topThreat && topThreat.level !== 'SAFE') {
+          try {
+            window.AndroidFirewall.enforce(
+              topThreat.network.ssid,
+              topThreat.network.bssid,
+              topThreat.score,
+              topThreat.network.encryption,
+              topThreat.network.channel
+            );
+          } catch (e) {
+            console.error('Firewall bridge error:', e);
+          }
+        }
+      }
+
       renderDashboard();
       renderTable();
       renderHistory();
