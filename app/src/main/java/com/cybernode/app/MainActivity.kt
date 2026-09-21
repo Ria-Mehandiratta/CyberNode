@@ -24,8 +24,11 @@ class MainActivity : AppCompatActivity() {
                 domStorageEnabled = true
                 allowFileAccess = true
                 allowContentAccess = true
-                useWideViewPort = true
-                loadWithOverviewMode = true
+                useWideViewPort = false
+                loadWithOverviewMode = false
+                textZoom = 100
+                setSupportZoom(false)
+                displayZoomControls = false
                 cacheMode = WebSettings.LOAD_DEFAULT
             }
             webViewClient = WebViewClient()

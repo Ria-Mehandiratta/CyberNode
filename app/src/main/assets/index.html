@@ -2,7 +2,7 @@
 <html lang="en" class="dark">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>CyberNode - Live Cybersecurity Monitoring Dashboard</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -31,6 +31,7 @@
     body {
       font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
       transition: background-color 0.3s ease, color 0.3s ease;
+      -webkit-text-size-adjust: 100%;
     }
     .font-mono {
       font-family: 'JetBrains Mono', monospace;
@@ -45,6 +46,21 @@
     @keyframes pulseAlert {
       0%, 100% { box-shadow: 0 0 15px rgba(239, 68, 68, 0.4); }
       50% { box-shadow: 0 0 25px rgba(239, 68, 68, 0.85); }
+    }
+    @media (max-width: 640px) {
+      body {
+        font-size: 14px;
+      }
+      .tab-btn {
+        padding: 8px 12px !important;
+        font-size: 12px !important;
+        white-space: nowrap !important;
+      }
+      th, td {
+        white-space: nowrap;
+        padding-top: 10px !important;
+        padding-bottom: 10px !important;
+      }
     }
     /* Custom scrollbar */
     ::-webkit-scrollbar {
@@ -290,8 +306,8 @@
         </div>
 
         <!-- Table Container -->
-        <div class="overflow-x-auto">
-          <table class="w-full text-left text-xs">
+        <div class="overflow-x-auto w-full">
+          <table class="w-full text-left text-xs min-w-[700px]">
             <thead class="bg-slate-50/80 dark:bg-[#091219]/80 text-slate-500 dark:text-slate-400 uppercase font-semibold text-[10px] tracking-wider border-b border-slate-200 dark:border-[#172B3C]">
               <tr>
                 <th class="px-5 py-3.5">Wi-Fi Name (SSID)</th>
@@ -934,23 +950,6 @@
           });
         }
       });
-
-      if (window.AndroidFirewall && window.AndroidFirewall.enforce) {
-        const topThreat = state.assessments[0];
-        if (topThreat && topThreat.level !== 'SAFE') {
-          try {
-            window.AndroidFirewall.enforce(
-              topThreat.network.ssid,
-              topThreat.network.bssid,
-              topThreat.score,
-              topThreat.network.encryption,
-              topThreat.network.channel
-            );
-          } catch (e) {
-            console.error('Firewall bridge error:', e);
-          }
-        }
-      }
 
       renderDashboard();
       renderTable();
