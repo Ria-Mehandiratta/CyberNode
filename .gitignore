@@ -5,5 +5,3 @@ build/
 local.properties
 __pycache__/
 *.pyc
-
-*.apk
