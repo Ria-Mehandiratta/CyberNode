@@ -6,6 +6,15 @@ CyberNode is a portable Wi-Fi safety monitor built around an ESP32-S3 Zero and a
 
 - `app/` Native Android dashboard and threat engine.
 - `firmware/` ESP32-S3 Arduino sketch with BLE JSON notifications and physical alerts.
+- `dashboard.html` & `runner.py` Live web monitoring dashboard with Dark/Light themes, live ambient Wi-Fi telemetry, and attack simulation.
+
+## Run the Live Monitoring Dashboard (Web)
+
+Run the Python runner to launch the real-time cybersecurity dashboard:
+```bash
+python runner.py
+```
+Open `http://localhost:5050` to inspect live Wi-Fi telemetry, test Evil Twin and Rogue AP attack simulations, manage the CyberShield Firewall, and view threat history.
 
 ## Run the Android app
 

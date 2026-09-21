@@ -1,0 +1,1121 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CyberNode - Live Cybersecurity Monitoring Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            cyber: {
+              bg: '#070E14',
+              card: '#0D1821',
+              border: '#172A3A',
+              accent: '#10B981',
+              accentGlow: '#059669',
+              danger: '#EF4444',
+              warning: '#F59E0B',
+              safe: '#10B981'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+    .font-mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .pulse-glow-green {
+      box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
+    }
+    .pulse-glow-red {
+      box-shadow: 0 0 20px rgba(239, 68, 68, 0.6);
+      animation: pulseAlert 1.5s infinite;
+    }
+    @keyframes pulseAlert {
+      0%, 100% { box-shadow: 0 0 15px rgba(239, 68, 68, 0.4); }
+      50% { box-shadow: 0 0 25px rgba(239, 68, 68, 0.85); }
+    }
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(0,0,0,0.05);
+    }
+    .dark ::-webkit-scrollbar-track {
+      background: rgba(255,255,255,0.05);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(16, 185, 129, 0.3);
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(16, 185, 129, 0.6);
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 dark:bg-[#060D13] dark:text-[#F2F7F5] min-h-screen flex flex-col antialiased">
+
+  <!-- Top Navigation Bar -->
+  <header class="sticky top-0 z-40 bg-white/90 dark:bg-[#0A141D]/90 backdrop-blur-md border-b border-slate-200 dark:border-[#162634] px-4 lg:px-8 py-3.5 transition-colors">
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+      
+      <!-- Brand & Status -->
+      <div class="flex items-center justify-between w-full md:w-auto gap-4">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center text-slate-950 font-black text-xl shadow-lg shadow-emerald-500/20">
+            <svg class="w-6 h-6 text-slate-950" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+            </svg>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="font-extrabold text-xl tracking-tight text-slate-900 dark:text-white">Cyber<span class="text-emerald-500">Node</span></span>
+              <span class="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800/60">
+                v2.0 IoT Guard
+              </span>
+            </div>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Autonomous ESP32-S3 Wireless Threat Sentinel</p>
+          </div>
+        </div>
+
+        <!-- Mobile Theme Toggle -->
+        <button onclick="toggleTheme()" class="md:hidden p-2.5 rounded-lg border border-slate-200 dark:border-[#1E3245] text-slate-600 dark:text-slate-300">
+          <span class="dark:hidden">🌙</span><span class="hidden dark:inline">☀️</span>
+        </button>
+      </div>
+
+      <!-- Quick Telemetry Chips & Controls -->
+      <div class="flex flex-wrap items-center gap-2.5 w-full md:w-auto justify-end">
+        <!-- Hardware Link Chip -->
+        <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-[#0F1D28] border border-slate-200 dark:border-[#1B2F40]">
+          <span id="espStatusDot" class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span id="espStatusText" class="text-slate-700 dark:text-slate-300">ESP32-S3: Connected</span>
+        </div>
+
+        <!-- Mode Toggle (Live / Simulated) -->
+        <div class="inline-flex rounded-lg p-1 bg-slate-100 dark:bg-[#0F1D28] border border-slate-200 dark:border-[#1B2F40] text-xs font-semibold">
+          <button id="modeLive" onclick="setMode('live')" class="px-3 py-1 rounded-md transition-all bg-emerald-600 text-white shadow-sm">
+            Live Wi-Fi
+          </button>
+          <button id="modeSim" onclick="setMode('simulated')" class="px-3 py-1 rounded-md transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
+            Demo Attack Lab
+          </button>
+        </div>
+
+        <!-- Scan Button -->
+        <button onclick="triggerScan()" class="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold rounded-lg bg-emerald-500 hover:bg-emerald-600 text-slate-950 shadow-md shadow-emerald-500/20 transition-all active:scale-95">
+          <svg id="scanSpinner" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+          </svg>
+          <span id="scanBtnText">Scan Now</span>
+        </button>
+
+        <!-- Desktop Theme Toggle -->
+        <button onclick="toggleTheme()" class="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-[#1E3245] bg-white dark:bg-[#0F1D28] text-xs font-semibold text-slate-700 dark:text-slate-300 hover:border-emerald-500 transition-colors">
+          <span id="themeIcon" class="text-sm">☀️</span>
+          <span id="themeLabel">Light</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Navigation Tabs -->
+  <nav class="border-b border-slate-200 dark:border-[#162634] bg-white dark:bg-[#081118] px-4 lg:px-8">
+    <div class="max-w-7xl mx-auto flex gap-1 sm:gap-2 overflow-x-auto py-2 text-xs font-bold">
+      <button onclick="switchTab('dashboard')" id="tab-dashboard" class="tab-btn active px-4 py-2 rounded-lg flex items-center gap-2 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+        Live Monitor & Scanner
+      </button>
+      <button onclick="switchTab('firewall')" id="tab-firewall" class="tab-btn px-4 py-2 rounded-lg flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-[#0F1D28]">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+        CyberShield Firewall
+      </button>
+      <button onclick="switchTab('history')" id="tab-history" class="tab-btn px-4 py-2 rounded-lg flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-[#0F1D28]">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        Threat History Log (<span id="historyCountBadge">0</span>)
+      </button>
+      <button onclick="switchTab('hardware')" id="tab-hardware" class="tab-btn px-4 py-2 rounded-lg flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-[#0F1D28]">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"></path></svg>
+        ESP32 Hardware Telemetry
+      </button>
+      <button onclick="switchTab('tips')" id="tab-tips" class="tab-btn px-4 py-2 rounded-lg flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-[#0F1D28]">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        Security Tips & AI
+      </button>
+    </div>
+  </nav>
+
+  <!-- Main Content Container -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 lg:p-8 space-y-6">
+
+    <!-- TAB 1: LIVE DASHBOARD & SCANNER -->
+    <div id="view-dashboard" class="space-y-6">
+
+      <!-- Promiscuous Sniffer Banner (Image reference highlight) -->
+      <div class="bg-gradient-to-r from-emerald-500/10 via-teal-500/5 to-transparent border-l-4 border-emerald-500 p-4 rounded-r-xl text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+          <span class="text-xl">📡</span>
+          <div>
+            <span class="font-bold text-slate-900 dark:text-white">ESP32 Hardware Sniffer Mode:</span>
+            <span class="text-slate-600 dark:text-slate-300 ml-1">ESP32 kisi Wi-Fi se connect nahi hota. Passive RF promiscuous mode me sirf ambient packets monitor karta hai.</span>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-mono font-bold">2.4 GHz & 5 GHz Bands</span>
+        </div>
+      </div>
+
+      <!-- Top KPI Row -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        
+        <!-- System Status Card -->
+        <div class="bg-white dark:bg-[#0C1721] rounded-2xl p-5 border border-slate-200 dark:border-[#172B3C] shadow-sm relative overflow-hidden">
+          <div class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">SYSTEM THREAT STATUS</div>
+          <div class="mt-2 flex items-baseline justify-between">
+            <span id="kpiStatus" class="text-3xl font-extrabold tracking-tight text-emerald-500">SAFE</span>
+            <span id="kpiPulse" class="w-3.5 h-3.5 rounded-full bg-emerald-500 pulse-glow-green"></span>
+          </div>
+          <div id="kpiStatusDesc" class="text-xs text-slate-500 dark:text-slate-400 mt-2">Environment clean • No rogue APs detected</div>
+        </div>
+
+        <!-- AI Risk Meter Card -->
+        <div class="bg-white dark:bg-[#0C1721] rounded-2xl p-5 border border-slate-200 dark:border-[#172B3C] shadow-sm">
+          <div class="flex justify-between items-center text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            <span>AI RISK METER</span>
+            <span id="kpiScoreText" class="font-bold font-mono text-emerald-500 text-sm">0 / 100</span>
+          </div>
+          <div class="w-full bg-slate-200 dark:bg-[#142636] h-3 rounded-full mt-3 overflow-hidden p-0.5">
+            <div id="kpiScoreBar" class="h-full bg-emerald-500 rounded-full transition-all duration-700" style="width: 5%"></div>
+          </div>
+          <div class="flex justify-between text-[10px] text-slate-400 dark:text-slate-500 mt-1 font-mono">
+            <span>0 SAFE</span>
+            <span>31 WARN</span>
+            <span>61 DANGER</span>
+          </div>
+        </div>
+
+        <!-- Active Wi-Fi Networks -->
+        <div class="bg-white dark:bg-[#0C1721] rounded-2xl p-5 border border-slate-200 dark:border-[#172B3C] shadow-sm">
+          <div class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">NETWORKS IN VICINITY</div>
+          <div class="mt-2 flex items-baseline justify-between">
+            <span id="kpiTotalNetworks" class="text-3xl font-extrabold font-mono text-slate-900 dark:text-white">0</span>
+            <span class="text-xs font-medium text-slate-500 dark:text-slate-400">Active BSSIDs</span>
+          </div>
+          <div class="flex items-center gap-3 text-xs mt-2">
+            <span class="text-emerald-500 font-bold" id="kpiSafeCount">0 Safe</span>
+            <span class="text-amber-500 font-bold" id="kpiWarnCount">0 Warn</span>
+            <span class="text-rose-500 font-bold" id="kpiDangerCount">0 Danger</span>
+          </div>
+        </div>
+
+        <!-- CyberShield Firewall Status -->
+        <div class="bg-white dark:bg-[#0C1721] rounded-2xl p-5 border border-slate-200 dark:border-[#172B3C] shadow-sm">
+          <div class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">CYBERSHIELD FIREWALL</div>
+          <div class="mt-2 flex items-baseline justify-between">
+            <span id="kpiFirewallStatus" class="text-2xl font-extrabold tracking-tight text-emerald-500">ARMED</span>
+            <span class="px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+              ACTIVE
+            </span>
+          </div>
+          <div class="text-xs text-slate-500 dark:text-slate-400 mt-2">Auto-disconnect & block enabled</div>
+        </div>
+
+      </div>
+
+      <!-- Quick Demo Attack Injector Bar -->
+      <div class="bg-white dark:bg-[#0C1721] rounded-2xl p-4 border border-slate-200 dark:border-[#172B3C] shadow-sm">
+        <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+          <div>
+            <span class="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Attack Scenario Simulator:</span>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Test how the AI Threat Engine & CyberShield Firewall respond to live wireless attacks</p>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <button onclick="injectScenario('normal')" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-[#142534] hover:bg-emerald-500/20 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-[#1D354A] transition-colors">
+              Normal Environment
+            </button>
+            <button onclick="injectScenario('eviltwin')" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-900/60 transition-colors flex items-center gap-1">
+              <span>⚠️</span> Simulate Evil Twin Attack
+            </button>
+            <button onclick="injectScenario('rogue')" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-900/60 transition-colors flex items-center gap-1">
+              <span>🚨</span> Simulate Rogue Open AP
+            </button>
+            <button onclick="injectScenario('wep')" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-900/60 transition-colors">
+              Legacy WEP Leak
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Live Scanner Table -->
+      <div class="bg-white dark:bg-[#0C1721] rounded-2xl border border-slate-200 dark:border-[#172B3C] shadow-sm overflow-hidden">
+        
+        <!-- Table Header & Controls -->
+        <div class="p-5 border-b border-slate-200 dark:border-[#172B3C] flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+          <div>
+            <h2 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+              Live Wireless Sniffer Feed (ESP32 Telemetry)
+            </h2>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Continuous 802.11 beacon & probe inspection table</p>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-3">
+            <!-- Search -->
+            <div class="relative flex-1 sm:w-60">
+              <input type="text" id="networkSearch" oninput="filterNetworks()" placeholder="Search SSID or BSSID..." 
+                     class="w-full bg-slate-50 dark:bg-[#101F2C] border border-slate-200 dark:border-[#1C3347] rounded-xl px-3.5 py-1.5 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-emerald-500">
+            </div>
+
+            <!-- Filter Level -->
+            <select id="levelFilter" onchange="filterNetworks()" class="bg-slate-50 dark:bg-[#101F2C] border border-slate-200 dark:border-[#1C3347] rounded-xl px-3 py-1.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500">
+              <option value="ALL">All Threat Levels</option>
+              <option value="SAFE">Safe Only</option>
+              <option value="WARNING">Suspicious / Warning</option>
+              <option value="DANGER">Danger / Malicious</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Table Container -->
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-slate-50/80 dark:bg-[#091219]/80 text-slate-500 dark:text-slate-400 uppercase font-semibold text-[10px] tracking-wider border-b border-slate-200 dark:border-[#172B3C]">
+              <tr>
+                <th class="px-5 py-3.5">Wi-Fi Name (SSID)</th>
+                <th class="px-4 py-3.5">MAC Address (BSSID)</th>
+                <th class="px-4 py-3.5">Signal Strength (RSSI)</th>
+                <th class="px-4 py-3.5">Encryption Type</th>
+                <th class="px-4 py-3.5">Channel / Band</th>
+                <th class="px-4 py-3.5">AI Threat Score</th>
+                <th class="px-4 py-3.5">Threat Status</th>
+                <th class="px-5 py-3.5 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody id="networkTableBody" class="divide-y divide-slate-100 dark:divide-[#142636]">
+              <!-- Dynamic rows inserted here -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Footer / Table Status -->
+        <div class="p-4 bg-slate-50/50 dark:bg-[#091219]/40 border-t border-slate-200 dark:border-[#172B3C] flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+          <span id="scanTimestamp">Last Scan: Just now</span>
+          <span>Click any network row for full AI Threat Inspection</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- TAB 2: CYBERSHIELD FIREWALL PAGE -->
+    <div id="view-firewall" class="space-y-6 hidden">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Controls Column -->
+        <div class="lg:col-span-1 space-y-4">
+          <div class="bg-white dark:bg-[#0C1721] rounded-2xl p-6 border border-slate-200 dark:border-[#172B3C] shadow-sm">
+            <h3 class="font-bold text-slate-900 dark:text-white text-base flex items-center gap-2">
+              <span class="text-emerald-500">🛡️</span> CyberShield Master Defense
+            </h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Autonomous containment rules executed on your device</p>
+
+            <div class="mt-6 space-y-4">
+              <!-- Master Toggle -->
+              <div class="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-[#101F2C] border border-slate-200 dark:border-[#1D354A]">
+                <div>
+                  <div class="text-xs font-bold text-slate-900 dark:text-white">Active Defense Engine</div>
+                  <div class="text-[11px] text-slate-500">Real-time threat blocking</div>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" id="fwMaster" checked class="sr-only peer">
+                  <div class="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                </label>
+              </div>
+
+              <!-- Auto Disconnect -->
+              <div class="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-[#101F2C] border border-slate-200 dark:border-[#1D354A]">
+                <div>
+                  <div class="text-xs font-bold text-slate-900 dark:text-white">Auto-Disconnect Danger</div>
+                  <div class="text-[11px] text-slate-500">Sever connection if AP turns hostile</div>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" id="fwAutoDisconnect" checked class="sr-only peer">
+                  <div class="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                </label>
+              </div>
+
+              <!-- Block Auto Reconnect -->
+              <div class="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-[#101F2C] border border-slate-200 dark:border-[#1D354A]">
+                <div>
+                  <div class="text-xs font-bold text-slate-900 dark:text-white">Block Auto-Reconnect</div>
+                  <div class="text-[11px] text-slate-500">Prevent OS from rejoining blacklisted AP</div>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" id="fwBlockReconnect" checked class="sr-only peer">
+                  <div class="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                </label>
+              </div>
+
+              <!-- Trusted Wi-Fi Protection -->
+              <div class="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-[#101F2C] border border-slate-200 dark:border-[#1D354A]">
+                <div>
+                  <div class="text-xs font-bold text-slate-900 dark:text-white">BSSID Pinning Protection</div>
+                  <div class="text-[11px] text-slate-500">Detect Evil Twins imitating your trusted SSIDs</div>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" id="fwBssidPinning" checked class="sr-only peer">
+                  <div class="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Blocked & Quarantined Networks Column -->
+        <div class="lg:col-span-2 space-y-4">
+          <div class="bg-white dark:bg-[#0C1721] rounded-2xl p-6 border border-slate-200 dark:border-[#172B3C] shadow-sm">
+            <div class="flex justify-between items-center mb-4">
+              <div>
+                <h3 class="font-bold text-slate-900 dark:text-white text-base flex items-center gap-2">
+                  <span class="text-rose-500">🚫</span> Quarantined / Blocked Networks
+                </h3>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">These access points are actively prevented from associating</p>
+              </div>
+              <button onclick="clearBlocklist()" class="px-3 py-1 text-xs font-semibold rounded-lg bg-slate-100 dark:bg-[#152534] hover:bg-slate-200 dark:hover:bg-[#1E354A] text-slate-700 dark:text-slate-300">
+                Clear All
+              </button>
+            </div>
+
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs">
+                <thead class="bg-slate-50 dark:bg-[#091219] text-slate-500 dark:text-slate-400 uppercase font-semibold text-[10px]">
+                  <tr>
+                    <th class="px-4 py-2.5">SSID</th>
+                    <th class="px-4 py-2.5">BSSID</th>
+                    <th class="px-4 py-2.5">Block Reason</th>
+                    <th class="px-4 py-2.5 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody id="blockedTableBody" class="divide-y divide-slate-100 dark:divide-[#142636]">
+                  <!-- Injected dynamically -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Trusted Networks Configuration -->
+          <div class="bg-white dark:bg-[#0C1721] rounded-2xl p-6 border border-slate-200 dark:border-[#172B3C] shadow-sm">
+            <div class="flex justify-between items-center mb-4">
+              <div>
+                <h3 class="font-bold text-slate-900 dark:text-white text-base flex items-center gap-2">
+                  <span class="text-emerald-500">⭐</span> Trusted Wi-Fi Profiles
+                </h3>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Known safe networks receive lower AI threat priority</p>
+              </div>
+              <button onclick="promptAddTrusted()" class="px-3 py-1.5 text-xs font-bold rounded-lg bg-emerald-500 text-slate-950 hover:bg-emerald-600">
+                + Add Trusted
+              </button>
+            </div>
+
+            <div id="trustedListContainer" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <!-- Injected dynamically -->
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- TAB 3: THREAT HISTORY LOG -->
+    <div id="view-history" class="space-y-6 hidden">
+      <div class="bg-white dark:bg-[#0C1721] rounded-2xl border border-slate-200 dark:border-[#172B3C] shadow-sm p-6">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+          <div>
+            <h3 class="font-bold text-slate-900 dark:text-white text-lg flex items-center gap-2">
+              <span>📋</span> Threat Incident History
+            </h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Autonomous log of threats caught, mitigated, and saved to local SQLite/Room storage</p>
+          </div>
+          <div class="flex gap-2">
+            <button onclick="exportHistory()" class="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-slate-100 dark:bg-[#142534] hover:bg-slate-200 dark:hover:bg-[#1C3347] text-slate-700 dark:text-slate-300">
+              Export JSON
+            </button>
+            <button onclick="clearHistory()" class="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 hover:bg-rose-100">
+              Clear History
+            </button>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-slate-50 dark:bg-[#091219] text-slate-500 dark:text-slate-400 uppercase font-semibold text-[10px]">
+              <tr>
+                <th class="px-4 py-3">Timestamp</th>
+                <th class="px-4 py-3">Network Name</th>
+                <th class="px-4 py-3">Threat Category</th>
+                <th class="px-4 py-3">AI Score</th>
+                <th class="px-4 py-3">Action Executed</th>
+              </tr>
+            </thead>
+            <tbody id="historyTableBody" class="divide-y divide-slate-100 dark:divide-[#142636]">
+              <!-- Dynamic rows -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 4: ESP32 HARDWARE TELEMETRY -->
+    <div id="view-hardware" class="space-y-6 hidden">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        
+        <!-- Hardware Schematic Card -->
+        <div class="bg-white dark:bg-[#0C1721] rounded-2xl p-6 border border-slate-200 dark:border-[#172B3C] shadow-sm">
+          <div class="flex items-center justify-between">
+            <h3 class="font-bold text-slate-900 dark:text-white text-base">ESP32-S3 Zero Node</h3>
+            <span class="px-2 py-0.5 text-[10px] font-bold rounded bg-emerald-100 dark:bg-emerald-950/70 text-emerald-600 dark:text-emerald-400">ACTIVE</span>
+          </div>
+          <div class="mt-4 p-4 rounded-xl bg-slate-50 dark:bg-[#081118] border border-slate-200 dark:border-[#162736] flex flex-col items-center">
+            <div class="w-20 h-24 rounded-lg bg-emerald-950/50 border border-emerald-500 flex flex-col items-center justify-between p-2 relative shadow-inner">
+              <span class="text-[9px] font-mono text-emerald-400">ESP32-S3</span>
+              <div id="boardLedIndicator" class="w-4 h-4 rounded-full bg-emerald-500 pulse-glow-green"></div>
+              <span class="text-[8px] font-mono text-slate-400">240MHz</span>
+            </div>
+            <p class="text-xs font-semibold text-slate-700 dark:text-slate-300 mt-3">Promiscuous Sniffer Unit</p>
+          </div>
+
+          <div class="mt-4 space-y-2 text-xs">
+            <div class="flex justify-between py-1 border-b border-slate-100 dark:border-[#142534]">
+              <span class="text-slate-500">Firmware Build</span>
+              <span class="font-mono font-bold text-slate-900 dark:text-white">v0.1-arduino</span>
+            </div>
+            <div class="flex justify-between py-1 border-b border-slate-100 dark:border-[#142534]">
+              <span class="text-slate-500">BLE UUID</span>
+              <span class="font-mono text-[10px] text-slate-900 dark:text-white">8f2a0001-...</span>
+            </div>
+            <div class="flex justify-between py-1 border-b border-slate-100 dark:border-[#142534]">
+              <span class="text-slate-500">Sniffer Channel</span>
+              <span class="font-mono font-bold text-emerald-500">Auto Frequency Hop (1-14)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Physical Indicators & Motor -->
+        <div class="bg-white dark:bg-[#0C1721] rounded-2xl p-6 border border-slate-200 dark:border-[#172B3C] shadow-sm">
+          <h3 class="font-bold text-slate-900 dark:text-white text-base">Physical Alert Actuators</h3>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Hardware response indicators triggered by threat level</p>
+
+          <div class="mt-6 space-y-4">
+            <!-- RGB LED Indicator -->
+            <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-[#101F2C] border border-slate-200 dark:border-[#182C3D] flex items-center justify-between">
+              <div>
+                <div class="text-xs font-bold text-slate-900 dark:text-white">Physical RGB LED</div>
+                <div id="hwLedState" class="text-[11px] text-emerald-500 font-semibold">GREEN (Safe - Normal Monitoring)</div>
+              </div>
+              <div id="hwLedCircle" class="w-7 h-7 rounded-full bg-emerald-500 pulse-glow-green border-2 border-white dark:border-[#0C1721]"></div>
+            </div>
+
+            <!-- Vibration Motor -->
+            <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-[#101F2C] border border-slate-200 dark:border-[#182C3D] flex items-center justify-between">
+              <div>
+                <div class="text-xs font-bold text-slate-900 dark:text-white">Haptic Vibration Motor</div>
+                <div id="hwVibeState" class="text-[11px] text-slate-500 font-semibold">IDLE (Triggers on DANGER >= 61)</div>
+              </div>
+              <div id="hwVibeIcon" class="w-7 h-7 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-xs">
+                📳
+              </div>
+            </div>
+
+            <!-- Li-Po Battery Monitor -->
+            <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-[#101F2C] border border-slate-200 dark:border-[#182C3D]">
+              <div class="flex justify-between items-center text-xs font-bold text-slate-900 dark:text-white mb-2">
+                <span>Li-Po Battery Level</span>
+                <span class="text-emerald-500 font-mono">88% (4.12V)</span>
+              </div>
+              <div class="w-full bg-slate-200 dark:bg-[#162736] h-2.5 rounded-full overflow-hidden">
+                <div class="h-full bg-emerald-500 w-[88%]"></div>
+              </div>
+              <div class="text-[10px] text-slate-500 mt-1">TP4056 Module • 6.5 Hours Operating Time Remaining</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Hardware Responsibilities Guide -->
+        <div class="bg-white dark:bg-[#0C1721] rounded-2xl p-6 border border-slate-200 dark:border-[#172B3C] shadow-sm">
+          <h3 class="font-bold text-slate-900 dark:text-white text-base">Telemetry Parameter Map</h3>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">As configured in <code class="font-mono text-emerald-500">firmware/CyberNode.ino</code></p>
+
+          <div class="mt-4 space-y-2 text-xs">
+            <div class="p-2 rounded bg-slate-50 dark:bg-[#0F1D28] border border-slate-200 dark:border-[#172836]">
+              <div class="font-bold text-emerald-600 dark:text-emerald-400 font-mono">SSID</div>
+              <div class="text-slate-600 dark:text-slate-400 text-[11px]">Wi-Fi Network Name broadcasted</div>
+            </div>
+            <div class="p-2 rounded bg-slate-50 dark:bg-[#0F1D28] border border-slate-200 dark:border-[#172836]">
+              <div class="font-bold text-emerald-600 dark:text-emerald-400 font-mono">BSSID</div>
+              <div class="text-slate-600 dark:text-slate-400 text-[11px]">Router MAC Hardware Address (Checks Evil Twin)</div>
+            </div>
+            <div class="p-2 rounded bg-slate-50 dark:bg-[#0F1D28] border border-slate-200 dark:border-[#172836]">
+              <div class="font-bold text-emerald-600 dark:text-emerald-400 font-mono">RSSI</div>
+              <div class="text-slate-600 dark:text-slate-400 text-[11px]">Received Signal Strength Indicator (dBm)</div>
+            </div>
+            <div class="p-2 rounded bg-slate-50 dark:bg-[#0F1D28] border border-slate-200 dark:border-[#172836]">
+              <div class="font-bold text-emerald-600 dark:text-emerald-400 font-mono">Encryption</div>
+              <div class="text-slate-600 dark:text-slate-400 text-[11px]">Open, WEP, WPA2, WPA3 cipher suites</div>
+            </div>
+            <div class="p-2 rounded bg-slate-50 dark:bg-[#0F1D28] border border-slate-200 dark:border-[#172836]">
+              <div class="font-bold text-emerald-600 dark:text-emerald-400 font-mono">Channel</div>
+              <div class="text-slate-600 dark:text-slate-400 text-[11px]">Radio frequency channel index (1–14 / 36–165)</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- TAB 5: SECURITY TIPS & AI ADVISORY -->
+    <div id="view-tips" class="space-y-6 hidden">
+      <div class="bg-white dark:bg-[#0C1721] rounded-2xl p-6 border border-slate-200 dark:border-[#172B3C] shadow-sm">
+        <h3 class="font-bold text-slate-900 dark:text-white text-lg flex items-center gap-2">
+          <span>🛡️</span> AI Cybersecurity Guidelines & Threat Defense
+        </h3>
+        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Autonomous recommendations generated by the CyberNode Threat Engine</p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+          <div class="p-4 rounded-xl bg-slate-50 dark:bg-[#101F2C] border-l-4 border-rose-500">
+            <h4 class="font-bold text-xs uppercase text-rose-500">Evil Twin Attack Prevention</h4>
+            <p class="text-xs text-slate-600 dark:text-slate-300 mt-1">
+              Attackers spin up a clone AP with the identical SSID of your college or coffee shop. CyberNode compares BSSID MAC addresses against known baseline profiles to detect impersonation instantly.
+            </p>
+          </div>
+
+          <div class="p-4 rounded-xl bg-slate-50 dark:bg-[#101F2C] border-l-4 border-amber-500">
+            <h4 class="font-bold text-xs uppercase text-amber-500">Open Public Wi-Fi Risks</h4>
+            <p class="text-xs text-slate-600 dark:text-slate-300 mt-1">
+              Unencrypted networks expose plaintext wireless frames to nearby radio listeners. Never perform bank transactions or enter credentials while connected to an Open AP without CyberShield enabled.
+            </p>
+          </div>
+
+          <div class="p-4 rounded-xl bg-slate-50 dark:bg-[#101F2C] border-l-4 border-emerald-500">
+            <h4 class="font-bold text-xs uppercase text-emerald-500">Always Prefer WPA3 / Modern Ciphers</h4>
+            <p class="text-xs text-slate-600 dark:text-slate-300 mt-1">
+              WPA3 uses Simultaneous Authentication of Equals (SAE), rendering offline dictionary and handshake cracking ineffective. Avoid legacy WEP or outdated TKIP ciphers.
+            </p>
+          </div>
+
+          <div class="p-4 rounded-xl bg-slate-50 dark:bg-[#101F2C] border-l-4 border-blue-500">
+            <h4 class="font-bold text-xs uppercase text-blue-500">Signal Strength RSSI Heuristics</h4>
+            <p class="text-xs text-slate-600 dark:text-slate-300 mt-1">
+              An unknown access point boasting an abnormally high signal (> -45 dBm) located indoors could indicate a portable rogue Wi-Fi pineapple or attack box placed near you.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- AI Threat Details Modal -->
+  <div id="threatModal" class="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-[#0E1924] rounded-2xl max-w-lg w-full border border-slate-200 dark:border-[#1E364A] shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+      
+      <!-- Modal Header -->
+      <div class="p-5 border-b border-slate-200 dark:border-[#172C3E] flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <span id="modalLevelBadge" class="px-2.5 py-1 text-xs font-bold rounded-lg bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-400">
+            SAFE
+          </span>
+          <h3 id="modalSsid" class="text-base font-bold text-slate-900 dark:text-white truncate">Wi-Fi Name</h3>
+        </div>
+        <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 text-lg">✕</button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="p-6 space-y-4 text-xs">
+        <!-- Score Bar in Modal -->
+        <div>
+          <div class="flex justify-between items-center text-xs font-semibold mb-1">
+            <span class="text-slate-500 dark:text-slate-400">AI Threat Score</span>
+            <span id="modalScoreText" class="font-bold font-mono text-emerald-500 text-sm">15 / 100</span>
+          </div>
+          <div class="w-full bg-slate-200 dark:bg-[#152534] h-2.5 rounded-full overflow-hidden">
+            <div id="modalScoreBar" class="h-full bg-emerald-500 transition-all duration-500" style="width: 15%"></div>
+          </div>
+        </div>
+
+        <!-- Telemetry Grid -->
+        <div class="grid grid-cols-2 gap-2.5">
+          <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-[#122230] border border-slate-100 dark:border-[#1A3144]">
+            <div class="text-[10px] text-slate-400 uppercase font-mono">BSSID MAC</div>
+            <div id="modalBssid" class="font-mono font-bold text-slate-900 dark:text-white mt-0.5 truncate">00:00:00:00:00:00</div>
+          </div>
+          <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-[#122230] border border-slate-100 dark:border-[#1A3144]">
+            <div class="text-[10px] text-slate-400 uppercase font-mono">Signal Strength</div>
+            <div id="modalRssi" class="font-mono font-bold text-slate-900 dark:text-white mt-0.5">-55 dBm</div>
+          </div>
+          <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-[#122230] border border-slate-100 dark:border-[#1A3144]">
+            <div class="text-[10px] text-slate-400 uppercase font-mono">Encryption Suite</div>
+            <div id="modalEncryption" class="font-bold text-slate-900 dark:text-white mt-0.5">WPA2-Personal</div>
+          </div>
+          <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-[#122230] border border-slate-100 dark:border-[#1A3144]">
+            <div class="text-[10px] text-slate-400 uppercase font-mono">Channel & Band</div>
+            <div id="modalChannel" class="font-mono font-bold text-slate-900 dark:text-white mt-0.5">Channel 11 (2.4 GHz)</div>
+          </div>
+        </div>
+
+        <!-- AI Diagnosis & Reason -->
+        <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-[#122230] border border-slate-100 dark:border-[#1A3144] space-y-1.5">
+          <div class="text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">AI Threat Classification</div>
+          <div id="modalCategory" class="font-bold text-slate-900 dark:text-white text-sm">No Immediate Threat</div>
+          <p id="modalReason" class="text-slate-600 dark:text-slate-300 text-xs leading-relaxed">
+            Network matches baseline wireless hygiene criteria.
+          </p>
+        </div>
+      </div>
+
+      <!-- Modal Footer Controls -->
+      <div class="p-4 bg-slate-50 dark:bg-[#0B151F] border-t border-slate-200 dark:border-[#172C3E] flex items-center justify-between gap-2">
+        <button id="modalBtnTrust" onclick="toggleModalTrust()" class="px-3.5 py-2 text-xs font-semibold rounded-xl bg-slate-200 dark:bg-[#162938] hover:bg-slate-300 dark:hover:bg-[#1F374C] text-slate-800 dark:text-slate-200">
+          ⭐ Mark as Trusted
+        </button>
+        <button id="modalBtnBlock" onclick="toggleModalBlock()" class="px-3.5 py-2 text-xs font-bold rounded-xl bg-rose-600 hover:bg-rose-700 text-white shadow-md shadow-rose-600/20">
+          🚫 Block with CyberShield
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    // State management
+    let state = {
+      mode: 'live',
+      assessments: [],
+      trustedNetworks: ['CyberNode Lab', 'Hackathon'],
+      blockedNetworks: [],
+      history: [],
+      selectedNet: null
+    };
+
+    // Theme Switcher Logic
+    function initTheme() {
+      const saved = localStorage.getItem('cybernode-theme');
+      if (saved === 'light') {
+        document.documentElement.classList.remove('dark');
+        updateThemeUI('light');
+      } else {
+        document.documentElement.classList.add('dark');
+        updateThemeUI('dark');
+      }
+    }
+
+    function toggleTheme() {
+      const isDark = document.documentElement.classList.contains('dark');
+      if (isDark) {
+        document.documentElement.classList.remove('dark');
+        localStorage.setItem('cybernode-theme', 'light');
+        updateThemeUI('light');
+      } else {
+        document.documentElement.classList.add('dark');
+        localStorage.setItem('cybernode-theme', 'dark');
+        updateThemeUI('dark');
+      }
+    }
+
+    function updateThemeUI(theme) {
+      const icon = document.getElementById('themeIcon');
+      const label = document.getElementById('themeLabel');
+      if (theme === 'light') {
+        if (icon) icon.innerText = '🌙';
+        if (label) label.innerText = 'Dark';
+      } else {
+        if (icon) icon.innerText = '☀️';
+        if (label) label.innerText = 'Light';
+      }
+    }
+
+    // Tab Navigation
+    function switchTab(tabId) {
+      const tabs = ['dashboard', 'firewall', 'history', 'hardware', 'tips'];
+      tabs.forEach(t => {
+        const view = document.getElementById('view-' + t);
+        const btn = document.getElementById('tab-' + t);
+        if (t === tabId) {
+          view.classList.remove('hidden');
+          btn.className = 'tab-btn active px-4 py-2 rounded-lg flex items-center gap-2 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 font-bold';
+        } else {
+          view.classList.add('hidden');
+          btn.className = 'tab-btn px-4 py-2 rounded-lg flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-[#0F1D28] font-semibold';
+        }
+      });
+    }
+
+    // Color helpers
+    function colorFor(level) {
+      if (level === 'SAFE') return '#10B981';
+      if (level === 'WARNING') return '#F59E0B';
+      return '#EF4444';
+    }
+
+    function levelBadgeHtml(level) {
+      if (level === 'SAFE') {
+        return `<span class="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800/60">SAFE</span>`;
+      }
+      if (level === 'WARNING') {
+        return `<span class="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-400 border border-amber-300 dark:border-amber-800/60">SUSPICIOUS</span>`;
+      }
+      return `<span class="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-rose-100 text-rose-800 dark:bg-rose-950/70 dark:text-rose-400 border border-rose-300 dark:border-rose-800/60 animate-pulse">DANGER</span>`;
+    }
+
+    // RSSI Meter bar
+    function rssiMeterHtml(rssi) {
+      // rssi between -100 and -30
+      const pct = Math.min(100, Math.max(10, Math.round(((rssi + 100) / 70) * 100)));
+      let color = 'bg-emerald-500';
+      if (pct < 40) color = 'bg-slate-400';
+      else if (pct < 70) color = 'bg-teal-500';
+
+      return `
+        <div class="flex items-center gap-2">
+          <div class="w-16 bg-slate-200 dark:bg-[#172B3C] h-1.5 rounded-full overflow-hidden">
+            <div class="h-full ${color}" style="width: ${pct}%"></div>
+          </div>
+          <span class="font-mono text-slate-700 dark:text-slate-300">${rssi} dBm</span>
+        </div>
+      `;
+    }
+
+    // Fetch live scan
+    async function triggerScan() {
+      const spinner = document.getElementById('scanSpinner');
+      const text = document.getElementById('scanBtnText');
+      if (spinner) spinner.classList.add('animate-spin');
+      if (text) text.innerText = 'Scanning...';
+
+      try {
+        const res = await fetch('/api/scan');
+        const data = await res.json();
+        state.assessments = data.assessments || [];
+        state.mode = data.mode || 'live';
+        if (data.history) state.history = data.history;
+        if (data.blocked) state.blockedNetworks = data.blocked;
+        if (data.trusted) state.trustedNetworks = data.trusted;
+
+        renderDashboard();
+        renderTable();
+        renderHistory();
+        renderFirewall();
+      } catch (err) {
+        console.error('Scan failed:', err);
+      } finally {
+        if (spinner) spinner.classList.remove('animate-spin');
+        if (text) text.innerText = 'Scan Now';
+        document.getElementById('scanTimestamp').innerText = 'Last Scan: ' + new Date().toLocaleTimeString();
+      }
+    }
+
+    // Render Dashboard KPIs & Hardware
+    function renderDashboard() {
+      const highest = state.assessments.reduce((max, cur) => cur.score > (max ? max.score : -1) ? cur : max, null);
+      const score = highest ? highest.score : 0;
+      const level = highest ? highest.level : 'SAFE';
+
+      // KPI Elements
+      const statusEl = document.getElementById('kpiStatus');
+      const pulseEl = document.getElementById('kpiPulse');
+      const descEl = document.getElementById('kpiStatusDesc');
+
+      statusEl.innerText = level;
+      statusEl.style.color = colorFor(level);
+
+      if (level === 'DANGER') {
+        pulseEl.className = 'w-3.5 h-3.5 rounded-full bg-rose-500 pulse-glow-red';
+        descEl.innerText = '🚨 Hostile access point detected! CyberShield engaged.';
+        // Hardware actuators
+        document.getElementById('hwLedState').innerText = 'RED (High Threat Alert - Danger)';
+        document.getElementById('hwLedState').className = 'text-[11px] text-rose-500 font-semibold';
+        document.getElementById('hwLedCircle').className = 'w-7 h-7 rounded-full bg-rose-500 pulse-glow-red border-2 border-white dark:border-[#0C1721]';
+        document.getElementById('boardLedIndicator').className = 'w-4 h-4 rounded-full bg-rose-500 pulse-glow-red';
+        document.getElementById('hwVibeState').innerText = 'ACTIVE VIBRATING (Silent physical alert)';
+        document.getElementById('hwVibeState').className = 'text-[11px] text-rose-500 font-bold animate-pulse';
+        document.getElementById('hwVibeIcon').className = 'w-7 h-7 rounded-full bg-rose-500 text-white flex items-center justify-center text-xs animate-bounce';
+      } else if (level === 'WARNING') {
+        pulseEl.className = 'w-3.5 h-3.5 rounded-full bg-amber-500';
+        descEl.innerText = '⚠️ Suspicious beacon behavior in vicinity.';
+        document.getElementById('hwLedState').innerText = 'YELLOW (Suspicious Network Warning)';
+        document.getElementById('hwLedState').className = 'text-[11px] text-amber-500 font-semibold';
+        document.getElementById('hwLedCircle').className = 'w-7 h-7 rounded-full bg-amber-500 border-2 border-white dark:border-[#0C1721]';
+        document.getElementById('boardLedIndicator').className = 'w-4 h-4 rounded-full bg-amber-500';
+        document.getElementById('hwVibeState').innerText = 'STANDBY (Triggers on DANGER >= 61)';
+        document.getElementById('hwVibeState').className = 'text-[11px] text-slate-500 font-semibold';
+        document.getElementById('hwVibeIcon').className = 'w-7 h-7 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-xs';
+      } else {
+        pulseEl.className = 'w-3.5 h-3.5 rounded-full bg-emerald-500 pulse-glow-green';
+        descEl.innerText = 'Environment clean • No rogue APs detected.';
+        document.getElementById('hwLedState').innerText = 'GREEN (Safe - Normal Monitoring)';
+        document.getElementById('hwLedState').className = 'text-[11px] text-emerald-500 font-semibold';
+        document.getElementById('hwLedCircle').className = 'w-7 h-7 rounded-full bg-emerald-500 pulse-glow-green border-2 border-white dark:border-[#0C1721]';
+        document.getElementById('boardLedIndicator').className = 'w-4 h-4 rounded-full bg-emerald-500 pulse-glow-green';
+        document.getElementById('hwVibeState').innerText = 'IDLE (Triggers on DANGER >= 61)';
+        document.getElementById('hwVibeState').className = 'text-[11px] text-slate-500 font-semibold';
+        document.getElementById('hwVibeIcon').className = 'w-7 h-7 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-xs';
+      }
+
+      // Risk score bar
+      document.getElementById('kpiScoreText').innerText = `${score} / 100`;
+      document.getElementById('kpiScoreText').style.color = colorFor(level);
+      const scoreBar = document.getElementById('kpiScoreBar');
+      scoreBar.style.width = `${Math.max(5, score)}%`;
+      scoreBar.style.backgroundColor = colorFor(level);
+
+      // Network counts
+      document.getElementById('kpiTotalNetworks').innerText = state.assessments.length;
+      const safe = state.assessments.filter(a => a.level === 'SAFE').length;
+      const warn = state.assessments.filter(a => a.level === 'WARNING').length;
+      const dang = state.assessments.filter(a => a.level === 'DANGER').length;
+      document.getElementById('kpiSafeCount').innerText = `${safe} Safe`;
+      document.getElementById('kpiWarnCount').innerText = `${warn} Warn`;
+      document.getElementById('kpiDangerCount').innerText = `${dang} Danger`;
+    }
+
+    // Render Table
+    function renderTable() {
+      const tbody = document.getElementById('networkTableBody');
+      tbody.innerHTML = '';
+
+      const query = (document.getElementById('networkSearch').value || '').toLowerCase();
+      const levelFilter = document.getElementById('levelFilter').value;
+
+      const filtered = state.assessments.filter(ass => {
+        const matchesQuery = ass.network.ssid.toLowerCase().includes(query) || ass.network.bssid.toLowerCase().includes(query);
+        const matchesLevel = levelFilter === 'ALL' || ass.level === levelFilter;
+        return matchesQuery && matchesLevel;
+      });
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-8 text-slate-400">No wireless networks match current filter.</td></tr>`;
+        return;
+      }
+
+      filtered.forEach((ass, index) => {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-50/80 dark:hover:bg-[#101F2C] cursor-pointer transition-colors';
+        tr.onclick = () => openModal(ass);
+
+        const isTrusted = state.trustedNetworks.includes(ass.network.ssid);
+        const isBlocked = state.blockedNetworks.some(b => b.bssid === ass.network.bssid);
+
+        tr.innerHTML = `
+          <td class="px-5 py-3.5">
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-slate-900 dark:text-white">${ass.network.ssid}</span>
+              ${isTrusted ? '<span class="text-[10px] bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-400 px-1.5 py-0.5 rounded font-semibold">Trusted</span>' : ''}
+              ${isBlocked ? '<span class="text-[10px] bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-400 px-1.5 py-0.5 rounded font-semibold">Blocked</span>' : ''}
+            </div>
+          </td>
+          <td class="px-4 py-3.5 font-mono text-slate-600 dark:text-slate-400 text-[11px]">${ass.network.bssid}</td>
+          <td class="px-4 py-3.5">${rssiMeterHtml(ass.network.rssi)}</td>
+          <td class="px-4 py-3.5 font-semibold text-slate-800 dark:text-slate-200">${ass.network.encryption}</td>
+          <td class="px-4 py-3.5 font-mono">
+            CH ${ass.network.channel}
+            <span class="text-[10px] text-slate-400 ml-1">(${ass.network.channel > 14 ? '5 GHz' : '2.4 GHz'})</span>
+          </td>
+          <td class="px-4 py-3.5 font-mono font-bold" style="color: ${colorFor(ass.level)}">${ass.score}</td>
+          <td class="px-4 py-3.5">${levelBadgeHtml(ass.level)}</td>
+          <td class="px-5 py-3.5 text-right">
+            <button class="px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-[#152737] dark:hover:bg-[#1E364C] text-slate-700 dark:text-slate-200">
+              Inspect
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function filterNetworks() {
+      renderTable();
+    }
+
+    // Modal Operations
+    function openModal(ass) {
+      state.selectedNet = ass;
+      document.getElementById('modalSsid').innerText = ass.network.ssid;
+      document.getElementById('modalBssid').innerText = ass.network.bssid;
+      document.getElementById('modalRssi').innerText = `${ass.network.rssi} dBm`;
+      document.getElementById('modalEncryption').innerText = ass.network.encryption;
+      document.getElementById('modalChannel').innerText = `Channel ${ass.network.channel} (${ass.network.channel > 14 ? '5 GHz' : '2.4 GHz Band'})`;
+      
+      document.getElementById('modalScoreText').innerText = `${ass.score} / 100`;
+      document.getElementById('modalScoreText').style.color = colorFor(ass.level);
+      document.getElementById('modalScoreBar').style.width = `${Math.max(5, ass.score)}%`;
+      document.getElementById('modalScoreBar').style.backgroundColor = colorFor(ass.level);
+
+      document.getElementById('modalLevelBadge').innerHTML = levelBadgeHtml(ass.level);
+      document.getElementById('modalCategory').innerText = ass.type;
+      document.getElementById('modalReason').innerText = ass.reason;
+
+      const isTrusted = state.trustedNetworks.includes(ass.network.ssid);
+      document.getElementById('modalBtnTrust').innerText = isTrusted ? 'Remove from Trusted' : '⭐ Mark as Trusted';
+
+      const isBlocked = state.blockedNetworks.some(b => b.bssid === ass.network.bssid);
+      document.getElementById('modalBtnBlock').innerText = isBlocked ? 'Unblock Network' : '🚫 Block with CyberShield';
+
+      document.getElementById('threatModal').classList.remove('hidden');
+    }
+
+    function closeModal() {
+      document.getElementById('threatModal').classList.add('hidden');
+    }
+
+    async function toggleModalTrust() {
+      if (!state.selectedNet) return;
+      const ssid = state.selectedNet.network.ssid;
+      await fetch('/api/trust?ssid=' + encodeURIComponent(ssid));
+      await triggerScan();
+      closeModal();
+    }
+
+    async function toggleModalBlock() {
+      if (!state.selectedNet) return;
+      const net = state.selectedNet.network;
+      await fetch('/api/block?bssid=' + encodeURIComponent(net.bssid) + '&ssid=' + encodeURIComponent(net.ssid) + '&reason=' + encodeURIComponent(state.selectedNet.type));
+      await triggerScan();
+      closeModal();
+    }
+
+    // Render Firewall tab
+    function renderFirewall() {
+      const blockedBody = document.getElementById('blockedTableBody');
+      blockedBody.innerHTML = '';
+      if (state.blockedNetworks.length === 0) {
+        blockedBody.innerHTML = `<tr><td colspan="4" class="text-center py-6 text-slate-400">No networks currently quarantined.</td></tr>`;
+      } else {
+        state.blockedNetworks.forEach(b => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td class="px-4 py-2.5 font-bold text-slate-900 dark:text-white">${b.ssid}</td>
+            <td class="px-4 py-2.5 font-mono text-slate-500">${b.bssid}</td>
+            <td class="px-4 py-2.5 text-rose-500">${b.reason || 'Malicious rogue AP'}</td>
+            <td class="px-4 py-2.5 text-right">
+              <button onclick="unblockBssid('${b.bssid}')" class="text-xs text-slate-500 hover:text-emerald-500">Unblock</button>
+            </td>
+          `;
+          blockedBody.appendChild(row);
+        });
+      }
+
+      const trustedCont = document.getElementById('trustedListContainer');
+      trustedCont.innerHTML = '';
+      state.trustedNetworks.forEach(t => {
+        const card = document.createElement('div');
+        card.className = 'p-3 rounded-xl bg-slate-50 dark:bg-[#101F2C] border border-slate-200 dark:border-[#1A3144] flex items-center justify-between';
+        card.innerHTML = `
+          <div>
+            <div class="font-bold text-xs text-slate-900 dark:text-white">${t}</div>
+            <div class="text-[10px] text-emerald-500 font-semibold">Priority Reduced (-25 Risk Baseline)</div>
+          </div>
+          <button onclick="removeTrusted('${t}')" class="text-xs text-slate-400 hover:text-rose-500 p-1">✕</button>
+        `;
+        trustedCont.appendChild(card);
+      });
+    }
+
+    async function unblockBssid(bssid) {
+      await fetch('/api/unblock?bssid=' + encodeURIComponent(bssid));
+      triggerScan();
+    }
+
+    async function clearBlocklist() {
+      await fetch('/api/clear_blocks');
+      triggerScan();
+    }
+
+    function promptAddTrusted() {
+      const ssid = prompt('Enter SSID name of trusted Wi-Fi:');
+      if (ssid) {
+        fetch('/api/trust?ssid=' + encodeURIComponent(ssid)).then(() => triggerScan());
+      }
+    }
+
+    function removeTrusted(ssid) {
+      fetch('/api/trust?ssid=' + encodeURIComponent(ssid)).then(() => triggerScan());
+    }
+
+    // Render History Log
+    function renderHistory() {
+      const tbody = document.getElementById('historyTableBody');
+      const badge = document.getElementById('historyCountBadge');
+      tbody.innerHTML = '';
+      badge.innerText = state.history.length;
+
+      if (state.history.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center py-6 text-slate-400">No threat events recorded in this session.</td></tr>`;
+        return;
+      }
+
+      state.history.slice().reverse().forEach(h => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td class="px-4 py-2.5 font-mono text-slate-500">${h.timestamp}</td>
+          <td class="px-4 py-2.5 font-bold text-slate-900 dark:text-white">${h.ssid}</td>
+          <td class="px-4 py-2.5 text-rose-500 font-semibold">${h.type}</td>
+          <td class="px-4 py-2.5 font-mono font-bold">${h.score}</td>
+          <td class="px-4 py-2.5 text-emerald-500 font-medium">${h.action}</td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    async function clearHistory() {
+      await fetch('/api/clear_history');
+      triggerScan();
+    }
+
+    function exportHistory() {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state.history, null, 2));
+      const a = document.createElement('a');
+      a.setAttribute("href", dataStr);
+      a.setAttribute("download", "cybernode_threat_history.json");
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    }
+
+    // Mode Switching
+    async function setMode(mode) {
+      await fetch('/api/mode?mode=' + mode);
+      document.getElementById('modeLive').className = mode === 'live' 
+        ? 'px-3 py-1 rounded-md transition-all bg-emerald-600 text-white shadow-sm'
+        : 'px-3 py-1 rounded-md transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white';
+      document.getElementById('modeSim').className = mode === 'simulated'
+        ? 'px-3 py-1 rounded-md transition-all bg-emerald-600 text-white shadow-sm'
+        : 'px-3 py-1 rounded-md transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white';
+      triggerScan();
+    }
+
+    // Attack Scenario Injections
+    async function injectScenario(type) {
+      await fetch('/api/scenario?type=' + type);
+      await triggerScan();
+    }
+
+    // Initialize on load
+    window.addEventListener('DOMContentLoaded', () => {
+      initTheme();
+      triggerScan();
+      setInterval(triggerScan, 5000);
+    });
+  </script>
+</body>
+</html>
