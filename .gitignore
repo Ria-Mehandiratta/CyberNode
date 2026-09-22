@@ -6,3 +6,5 @@ local.properties
 __pycache__/
 *.pyc
 .kotlin/
+
+.vercel

@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>CyberNode - Live Cybersecurity Monitoring Dashboard</title>
+  <link rel="icon" type="image/jpeg" href="logo.jpg">
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -91,11 +92,7 @@
       <!-- Brand & Status -->
       <div class="flex items-center justify-between w-full md:w-auto gap-4">
         <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center text-slate-950 font-black text-xl shadow-lg shadow-emerald-500/20">
-            <svg class="w-6 h-6 text-slate-950" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
-            </svg>
-          </div>
+          <img src="logo.jpg" alt="CyberNode Logo" class="w-10 h-10 rounded-xl object-cover border border-cyan-500/40 shadow-lg shadow-cyan-500/25 ring-1 ring-cyan-400/30">
           <div>
             <div class="flex items-center gap-2">
               <span class="font-extrabold text-xl tracking-tight text-slate-900 dark:text-white">Cyber<span class="text-emerald-500">Node</span></span>
@@ -1357,9 +1354,18 @@
       const bssid = (net.bssid || '').toLowerCase();
       const ssidLower = ssid.toLowerCase();
 
+      // Locally administered / SoftAP randomized MAC check
+      const isRandomizedMac = bssid.length >= 2 && ['2', '6', 'a', 'e'].includes(bssid[1]);
+      if (isRandomizedMac) {
+        score += 10;
+        reasons.push(`Private/Randomized MAC address (${bssid.slice(0, 8)}...) - client privacy / softAP device`);
+      }
+
       // Case-insensitive & clone comparison
       const duplicates = allNets.filter(n => (n.ssid || '').trim().toLowerCase() === ssidLower && ssidLower && ssidLower !== '[hidden network]');
       let isForeignHardware = false;
+      let isEvilTwinClone = false;
+      let isOfficialVictim = false;
 
       if (duplicates.length > 1) {
         const prefix = bssid.slice(0, 8);
@@ -1367,19 +1373,17 @@
         isForeignHardware = otherPrefixes.some(p => p && p !== prefix);
 
         if (isForeignHardware) {
-          score += 65;
-          reasons.push(`CRITICAL Evil Twin Detected: Rogue transmitter mimicking SSID '${ssid}' with conflicting hardware MAC (${bssid})`);
+          if (isRandomizedMac || !(net.vendor && (net.vendor.includes('Hewlett') || net.vendor.includes('Aruba') || net.vendor.includes('Cisco')))) {
+            score += 65;
+            isEvilTwinClone = true;
+            reasons.push(`CRITICAL Evil Twin Detected: Rogue transmitter mimicking SSID '${ssid}' with conflicting hardware MAC (${bssid})`);
+          } else {
+            isOfficialVictim = true;
+            reasons.push(`Official AP Alert: An unauthorized rogue transmitter is currently impersonating this network ('${ssid}')`);
+          }
         } else {
-          score += 35;
-          reasons.push(`Multiple BSSIDs broadcast identical SSID '${ssid}' (Evil Twin / Multi-AP indicator)`);
+          reasons.push(`Multiple BSSIDs broadcast identical SSID '${ssid}' (BSSID multi-AP fleet)`);
         }
-      }
-
-      // Locally administered / SoftAP randomized MAC check
-      const isRandomizedMac = bssid.length >= 2 && ['2', '6', 'a', 'e'].includes(bssid[1]);
-      if (isRandomizedMac) {
-        score += 30;
-        reasons.push(`Software-generated or spoofed MAC address (${bssid.slice(0, 8)}...) - potential softAP rogue transmitter`);
       }
 
       if (enc === 'open' || enc === 'none' || enc.includes('open')) {
@@ -1388,6 +1392,9 @@
       } else if (enc.includes('wep')) {
         score += 60;
         reasons.push('Deprecated WEP encryption is vulnerable to instant RC4 keystream injection');
+      } else if (enc.includes('wpa3')) {
+        score = Math.max(0, score - 15);
+        reasons.push('Robust WPA3-SAE encryption provides enterprise-grade brute-force and eavesdropping protection');
       } else if (enc.includes('wpa') && !enc.includes('wpa2') && !enc.includes('wpa3')) {
         score += 30;
         reasons.push('Legacy WPA1/TKIP protocol is vulnerable to keystream recovery attacks');
@@ -1395,12 +1402,12 @@
 
       const hotspotKeywords = ["phone", "android", "iphone", "5g", "pro", "galaxy", "realme", "iqoo", "redmi", "vivo", "oppo", "oneplus", "hotspot"];
       if (hotspotKeywords.some(k => ssidLower.includes(k))) {
-        score += 25;
-        reasons.push('Unmanaged personal mobile hotspot detected (rogue AP perimeter bypass risk)');
+        score += 10;
+        reasons.push('Personal mobile hotspot detected (unmanaged access point)');
       }
 
-      if (net.rssi > -42) {
-        score += 20;
+      if (net.rssi > -38) {
+        score += 15;
         reasons.push(`Abnormally intense signal (${net.rssi} dBm) - rogue transmitter immediate proximity`);
       }
 
@@ -1411,10 +1418,10 @@
 
       const isTrustedSsid = trusted.some(t => t.toLowerCase() === ssidLower);
       if (isTrustedSsid) {
-        if (!isForeignHardware && !isRandomizedMac) {
+        if (!isEvilTwinClone) {
           score = Math.max(0, score - 25);
         } else {
-          score += 20;
+          score += 25;
           reasons.push(`HIGH SEVERITY: Rogue transmitter actively impersonating trusted network '${ssid}'`);
         }
       }
@@ -1425,11 +1432,12 @@
       else if (finalScore >= 30) level = 'WARNING';
 
       let type = 'Secure Baseline';
-      if ((duplicates.length > 1 && isForeignHardware) || reasons.some(r => r.includes('Evil Twin'))) type = 'Evil Twin Attack';
+      if (isEvilTwinClone) type = 'Evil Twin Attack';
+      else if (isOfficialVictim) type = 'Official Network (Under Impersonation)';
       else if (enc === 'open' || enc.includes('open')) type = 'Open Wi-Fi Risk';
       else if (enc.includes('wep')) type = 'Weak Encryption Vulnerability';
       else if (isRandomizedMac && finalScore >= 50) type = 'Rogue Access Point (SoftAP)';
-      else if (hotspotKeywords.some(k => ssidLower.includes(k))) type = 'Unmanaged Mobile Hotspot';
+      else if (hotspotKeywords.some(k => ssidLower.includes(k)) && finalScore >= 30) type = 'Unmanaged Mobile Hotspot';
       else if (finalScore >= 60) type = 'Rogue Access Point';
       else if (finalScore >= 30) type = 'Suspicious Network';
 
@@ -2015,7 +2023,7 @@
         const encLabel = dev.wifi ? (dev.wifi.auth || 'WPA2') : (dev.encryption || 'WPA2');
         const roleLabel = dev.node_role || dev.device_type;
         const iconSvg = deviceIconSvg(dev.icon || 'router');
-        const isEvilTwin = (dev.threat_type && dev.threat_type.includes('Evil Twin')) || (dev.risk_score >= 50 && dev.ssid && dev.ssid.toLowerCase().includes('hackathon') && !dev.is_connected);
+        const isEvilTwin = Boolean(dev.threat_type && dev.threat_type === 'Evil Twin Attack');
         const rssiVal = dev.wifi ? dev.wifi.rssi : (dev.rssi || -70);
         const pctVal = Math.max(5, Math.min(100, Math.round((rssiVal + 100) * 2)));
 

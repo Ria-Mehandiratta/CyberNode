@@ -22,16 +22,38 @@ object ThreatEngine {
     fun assess(network: WifiNetwork, trustedSsids: Set<String> = emptySet()): ThreatAssessment {
         var score = 0
         val reasons = mutableListOf<String>()
+        // Randomized MAC check (informative, low risk alone)
+        val bssid = network.bssid.lowercase()
+        val isRandomizedMac = bssid.length >= 2 && bssid[1] in listOf('2', '6', 'a', 'e')
+        if (isRandomizedMac) {
+            score += 10
+            reasons += "Private/Randomized MAC address (${bssid.take(8)}...) - softAP device"
+        }
+
         if (network.encryption.equals("Open", ignoreCase = true)) {
             score += 45
             reasons += "Open network can expose traffic to nearby listeners"
         } else if (network.encryption.contains("WEP", ignoreCase = true)) {
             score += 35
             reasons += "Legacy WEP encryption is weak"
-        } else if (network.encryption.contains("WPA", ignoreCase = true)) {
-            score += 5
+        } else if (network.encryption.contains("WPA3", ignoreCase = true)) {
+            score = (score - 15).coerceAtLeast(0)
+            reasons += "Robust WPA3-SAE encryption provides enterprise-grade protection"
+        } else if (network.encryption.contains("WPA", ignoreCase = true) &&
+            !network.encryption.contains("WPA2", ignoreCase = true) &&
+            !network.encryption.contains("WPA3", ignoreCase = true)
+        ) {
+            score += 20
+            reasons += "Legacy WPA1 protocol is weak"
         }
-        if (network.rssi > -50) {
+
+        val hotspotKeywords = listOf("phone", "android", "iphone", "5g", "pro", "galaxy", "realme", "iqoo", "redmi", "hotspot")
+        if (hotspotKeywords.any { network.ssid.contains(it, ignoreCase = true) }) {
+            score += 10
+            reasons += "Personal mobile hotspot detected"
+        }
+
+        if (network.rssi > -38) {
             score += 15
             reasons += "Unusually strong signal for an unknown access point"
         }
@@ -47,9 +69,10 @@ object ThreatEngine {
         }
         val type = when {
             network.encryption.equals("Open", ignoreCase = true) -> "Open Wi-Fi Risk"
+            network.encryption.contains("WEP", ignoreCase = true) -> "Weak Encryption Vulnerability"
             score >= 61 -> "Rogue Access Point"
             score >= 31 -> "Suspicious Network"
-            else -> "No immediate threat"
+            else -> "Secure Baseline"
         }
         return ThreatAssessment(network, score.coerceIn(0, 100), level, type,
             reasons.joinToString(". ").ifBlank { "Network matches the current safety baseline" })

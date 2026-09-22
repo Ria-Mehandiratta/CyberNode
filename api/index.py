@@ -49,11 +49,14 @@ def assess_network(network, trusted_ssids, all_networks):
 
     is_randomized_mac = len(bssid) >= 2 and bssid[1].lower() in ('2', '6', 'a', 'e')
     if is_randomized_mac:
-        score += 30
-        reasons.append(f"Software-generated or spoofed MAC address ({bssid[:8]}...) - potential softAP rogue transmitter")
+        score += 10
+        reasons.append(f"Private/Randomized MAC address ({bssid[:8]}...) - client privacy / softAP device")
 
     same_ssid_nets = [n for n in all_networks if n.get("ssid", "").strip().lower() == ssid_lower and ssid_lower not in ("", "[hidden network]")]
     is_foreign_hardware = False
+    is_evil_twin_clone = False
+    is_official_victim = False
+
     if len(same_ssid_nets) > 1:
         bssid_prefix = bssid[:8].lower()
         known_ap_prefixes = [n.get("bssid", "")[:8].lower() for n in same_ssid_nets if n.get("bssid", "").lower() != bssid]
@@ -62,12 +65,12 @@ def assess_network(network, trusted_ssids, all_networks):
         if is_foreign_hardware:
             if is_randomized_mac or vendor == "Standard Network Device":
                 score += 65
+                is_evil_twin_clone = True
                 reasons.append(f"CRITICAL Evil Twin Detected: Rogue transmitter mimicking SSID '{ssid}' with conflicting hardware MAC ({bssid})")
             else:
-                score += 20
+                is_official_victim = True
                 reasons.append(f"Official AP Alert: An unauthorized rogue transmitter is currently impersonating this network ('{ssid}')")
         else:
-            score += 20
             reasons.append(f"Multiple BSSIDs broadcast identical SSID '{ssid}' (BSSID multi-AP fleet)")
 
     if enc.lower() in ("open", "none") or "open" in enc.lower():
@@ -76,21 +79,27 @@ def assess_network(network, trusted_ssids, all_networks):
     elif "wep" in enc.lower():
         score += 60
         reasons.append("Deprecated WEP encryption is vulnerable to instant RC4 keystream injection")
+    elif "wpa3" in enc.lower():
+        score = max(0, score - 15)
+        reasons.append("Robust WPA3-SAE encryption provides enterprise-grade brute-force and eavesdropping protection")
+    elif "wpa" in enc.lower() and "wpa2" not in enc.lower() and "wpa3" not in enc.lower():
+        score += 30
+        reasons.append("Legacy WPA1/TKIP protocol is vulnerable to keystream recovery attacks")
 
-    hotspot_keywords = ["phone", "android", "iphone", "5g", "pro", "galaxy", "realme", "iqoo", "redmi", "hotspot"]
+    hotspot_keywords = ["phone", "android", "iphone", "5g", "pro", "galaxy", "realme", "iqoo", "redmi", "vivo", "oppo", "oneplus", "hotspot"]
     if any(k in ssid_lower for k in hotspot_keywords):
-        score += 25
-        reasons.append("Unmanaged personal mobile hotspot detected (rogue AP perimeter bypass risk)")
+        score += 10
+        reasons.append("Personal mobile hotspot detected (unmanaged access point)")
 
-    if network.get("rssi", -100) > -42:
-        score += 20
+    if network.get("rssi", -100) > -38:
+        score += 15
         reasons.append(f"Abnormally intense signal ({network.get('rssi')} dBm) - rogue transmitter immediate proximity")
 
     is_trusted_ssid = any(t.lower() == ssid_lower for t in trusted_ssids)
     if is_trusted_ssid:
-        if not is_randomized_mac and vendor != "Standard Network Device":
+        if not is_evil_twin_clone:
             score = max(0, score - 25)
-        elif is_foreign_hardware or is_randomized_mac:
+        else:
             score += 25
             reasons.append(f"HIGH SEVERITY: Rogue transmitter actively impersonating trusted network '{ssid}'")
 
@@ -102,15 +111,17 @@ def assess_network(network, trusted_ssids, all_networks):
     else:
         level = "SAFE"
 
-    if (len(same_ssid_nets) > 1 and is_foreign_hardware) or "Evil Twin" in " ".join(reasons):
+    if is_evil_twin_clone:
         threat_type = "Evil Twin Attack"
-    elif "open" in enc.lower():
+    elif is_official_victim:
+        threat_type = "Official Network (Under Impersonation)"
+    elif enc.lower() in ("open", "none") or "open" in enc.lower():
         threat_type = "Open Wi-Fi Risk"
     elif "wep" in enc.lower():
         threat_type = "Weak Encryption Vulnerability"
     elif is_randomized_mac and final_score >= 50:
         threat_type = "Rogue Access Point (SoftAP)"
-    elif any(k in ssid_lower for k in hotspot_keywords):
+    elif any(k in ssid_lower for k in hotspot_keywords) and final_score >= 30:
         threat_type = "Unmanaged Mobile Hotspot"
     elif final_score >= 60:
         threat_type = "Rogue Access Point"
